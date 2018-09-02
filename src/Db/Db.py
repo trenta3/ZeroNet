@@ -328,11 +328,23 @@ class Db(object):
 
                 cur.execute("DELETE FROM %s WHERE json_id = ?" % table_name, (json_row["json_id"],))
 
-                if node not in data:
+                # TODO: Use the function below to extract multiple node names
+                def extractNodes (nodelist, data):
+                    nowdata = data
+                    if type(nodelist) != list:
+                        nodelist = [nodelist]
+                    for node in nodelist:
+                        if node not in data:
+                            return None
+                        else:
+                            nowdata = data[node]
+                    return nowdata
+                
+                if extractNodes(node, data) is None:
                     continue
 
                 if key_col:  # Map as dict
-                    for key, val in data[node].iteritems():
+                    for key, val in extractNodes(node, data).iteritems():
                         if val_col:  # Single value
                             cur.execute(
                                 "INSERT OR REPLACE INTO %s ?" % table_name,
@@ -359,7 +371,7 @@ class Db(object):
                                     row["json_id"] = json_row["json_id"]
                                     cur.execute("INSERT OR REPLACE INTO %s ?" % table_name, row)
                 else:  # Map as list
-                    for row in data[node]:
+                    for row in extractNodes(node, data):
                         row["json_id"] = json_row["json_id"]
                         if import_cols:
                             row = {key: row[key] for key in row if key in import_cols}  # Filter row by import_cols
